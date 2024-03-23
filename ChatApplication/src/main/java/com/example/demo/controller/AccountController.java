@@ -1,5 +1,7 @@
 package com.example.demo.controller;
 
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -7,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.HtmlUtils;
 
 import com.example.demo.dto.RefreshTokenDTO;
 import com.example.demo.dto.RegisterDTO;
@@ -23,6 +27,8 @@ import com.example.demo.dto.ResponseTokenDTO;
 import com.example.demo.dto.SecurityAnswerDTO;
 import com.example.demo.dto.SecurityQuestionDTO;
 import com.example.demo.dto.UserLogin;
+import com.example.demo.model.Contact;
+import com.example.demo.repository.ContactRepository;
 import com.example.demo.service.AccountService;
 import com.example.demo.utils.SanitizationUtils;
 
@@ -31,6 +37,7 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/account")
+@CrossOrigin
 public class AccountController {
 	
 	@Autowired
@@ -39,12 +46,19 @@ public class AccountController {
 	@Autowired
 	AccountService accountService;
 	
+	@Autowired
+	ContactRepository contactRepository;
+	
 	@PostMapping("/login")  //exposed
 	public ResponseEntity<?> login(@Valid @RequestBody UserLogin userLogin) {
 		String phoneNumber = SanitizationUtils.sanitizeHtml(userLogin.getPhoneNumber());
 		String password = SanitizationUtils.sanitizeHtml(userLogin.getPassword());
 		try {
-			Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(phoneNumber, password));
+			Optional<Contact> contact = contactRepository.findByPhoneNumber(phoneNumber);
+			if(contact.isEmpty()) {
+				throw new UsernameNotFoundException("invalid user request..!!");
+			}
+			Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(contact.get().getContactId(), password));
 			if(authentication.isAuthenticated()) {
 				return new ResponseEntity<ResponseTokenDTO>(accountService.createTokenResponseDTO(phoneNumber), HttpStatus.ACCEPTED);
 			}
@@ -91,8 +105,9 @@ public class AccountController {
 	    }
 	}
 	
-	@PostMapping("/forgot/{phoneNumber:\\d{10}}") //exposed
-	public ResponseEntity<?> forgot(@PathVariable String phoneNumber){
+	@PostMapping("/forgot/{phoneNum:\\d{10}}") //exposed
+	public ResponseEntity<?> forgot(@PathVariable String phoneNum){
+		String phoneNumber = SanitizationUtils.sanitizeHtml(phoneNum);
 		if(phoneNumber == null) {
 			return new ResponseEntity<String>("Invalid request", HttpStatus.BAD_REQUEST);
 		}

@@ -1,6 +1,5 @@
 package com.example.demo.dto;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class MessageDTO {
@@ -8,16 +7,19 @@ public class MessageDTO {
 	private Long senderId;
 	private Long messageId;
 	private String message;
-	private LocalDateTime sentDateTime;
+	private String sentDateTime;
 	private boolean isRead;
-	private LocalDateTime readDateTime;
+	private String readDateTime;
+	private boolean isDelivered;
+	private String deliveredDateTime;
 	private List<UserStatusDTO> isReadInfo;
 	
 	public MessageDTO() {
 		
 	}
 
-	public MessageDTO(Long senderId, Long messageId, String message, LocalDateTime sentDateTime, boolean isRead, LocalDateTime readDateTime, List<UserStatusDTO> isReadInfo) {
+	public MessageDTO(Long senderId, Long messageId, String message, String sentDateTime, boolean isRead,
+			String readDateTime, boolean isDelivered,  String deliveredDateTime ,List<UserStatusDTO> isReadInfo) {
 		super();
 		this.senderId = senderId;
 		this.messageId = messageId;
@@ -25,6 +27,8 @@ public class MessageDTO {
 		this.sentDateTime = sentDateTime;
 		this.isRead = isRead;
 		this.readDateTime = readDateTime;
+		this.isDelivered = isDelivered;
+		this.deliveredDateTime = deliveredDateTime;
 		this.isReadInfo = isReadInfo;
 	}
 
@@ -54,11 +58,11 @@ public class MessageDTO {
 	
 	
 
-	public LocalDateTime getSentDateTime() {
+	public String getSentDateTime() {
 		return sentDateTime;
 	}
 
-	public void setSentDateTime(LocalDateTime sentDateTime) {
+	public void setSentDateTime(String sentDateTime) {
 		this.sentDateTime = sentDateTime;
 	}
 
@@ -70,16 +74,34 @@ public class MessageDTO {
 		this.isRead = isRead;
 	}
 	
-	public LocalDateTime getReadDateTime() {
+	public String getReadDateTime() {
 		return readDateTime;
 	}
 
-	public void setReadDateTime(LocalDateTime readDateTime) {
+	public void setReadDateTime(String readDateTime) {
 		this.readDateTime = readDateTime;
 	}
 
 	public List<UserStatusDTO> getIsReadInfo() {
 		return isReadInfo;
+	}
+	
+	
+
+	public boolean isDelivered() {
+		return isDelivered;
+	}
+
+	public void setDelivered(boolean isDelivered) {
+		this.isDelivered = isDelivered;
+	}
+
+	public String getDeliveredDateTime() {
+		return deliveredDateTime;
+	}
+
+	public void setDeliveredDateTime(String deliveredDateTime) {
+		this.deliveredDateTime = deliveredDateTime;
 	}
 
 	public void setIsReadInfo(List<UserStatusDTO> isReadInfo) {

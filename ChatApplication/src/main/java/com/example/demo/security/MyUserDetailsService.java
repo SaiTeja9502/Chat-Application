@@ -20,10 +20,10 @@ public class MyUserDetailsService implements UserDetailsService{
 	ContactRepository contactRepository;
 	
 	@Override
-	public UserDetails loadUserByUsername(String phoneNumber) throws UsernameNotFoundException {
-		Optional<Contact> contact = contactRepository.findByPhoneNumber(phoneNumber);
+	public UserDetails loadUserByUsername(String contactId) throws UsernameNotFoundException {
+		Optional<Contact> contact = contactRepository.findById(Long.parseLong(contactId));
 		
-		contact.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
+		contact.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		
 		return contact.map(MyUserDetails::new).get();
 	}

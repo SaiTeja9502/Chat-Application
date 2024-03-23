@@ -1,5 +1,6 @@
 package com.example.demo.dto;
 
+import com.example.demo.model.UserRole;
 import com.example.demo.model.UserStatus;
 
 public class ContactDTO {
@@ -8,17 +9,19 @@ public class ContactDTO {
 	private String username;
 	private String base64Image;
 	private UserStatus status;
+	private UserRole role;
 	
 	public ContactDTO() {
 		
 	}
 
-	public ContactDTO(Long contactId, String username, String base64Image, UserStatus status) {
+	public ContactDTO(Long contactId, String username, String base64Image, UserStatus status, UserRole role) {
 		super();
 		this.contactId = contactId;
 		this.username = username;
 		this.base64Image = base64Image;
 		this.status = status;
+		this.role = role;
 	}
 	
 	public Long getcontactId() {
@@ -51,6 +54,14 @@ public class ContactDTO {
 
 	public void setStatus(UserStatus status) {
 		this.status = status;
+	}
+
+	public UserRole getRole() {
+		return role;
+	}
+
+	public void setRole(UserRole role) {
+		this.role = role;
 	}
 	
 	

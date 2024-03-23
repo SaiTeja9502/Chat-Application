@@ -11,10 +11,14 @@ public class RegisterDTO {
     @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
 	private String phoneNumber;
 	@NotBlank(message = "Username is required")
+	@Size(max = 20, message = "Username cannot be more than 20 characters")
 	private String userName;
 	@NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be at least 8 characters")
+    @Size(min = 8, max = 20, message = "Password must be at least 8 characters")
 	private String password;
+	@NotBlank(message = "Password is required")
+	@Size(min = 8, max = 20, message = "Password must be at least 8 characters")
+	private String confirmPassword;
 	@NotBlank(message = "Security Question is required")
 	private String securityQuestion;
 	@NotBlank(message = "Security Answer is required")
@@ -26,14 +30,15 @@ public class RegisterDTO {
 		
 	}
 
-	public RegisterDTO(String phoneNumber, String userName, String password,
+	public RegisterDTO(String phoneNumber, String userName, String password, String confirmPassword,
 			String securityQuestion, String securityAnswer) {
 		super();
-		this.phoneNumber = phoneNumber;
-		this.userName = userName;
-		this.password = password;
-		this.securityQuestion = securityQuestion;
-		this.securityAnswer = securityAnswer;
+		this.phoneNumber = sanitize(phoneNumber);
+		this.userName = sanitize(userName);
+		this.password = sanitize(password);
+		this.confirmPassword = sanitize(confirmPassword);
+		this.securityQuestion = sanitize(securityQuestion);
+		this.securityAnswer = sanitize(securityAnswer);
 	}
 
 	public String getPhoneNumber() {
@@ -60,6 +65,14 @@ public class RegisterDTO {
 		this.password = sanitize(password);
 	}
 
+	public String getConfirmPassword() {
+		return confirmPassword;
+	}
+
+	public void setConfirmPassword(String confirmPassword) {
+		this.confirmPassword = confirmPassword;
+	}
+
 	public String getSecurityQuestion() {
 		return securityQuestion;
 	}
@@ -77,8 +90,21 @@ public class RegisterDTO {
 	}
 	
 	private String sanitize(String input) {
-        // Perform HTML escaping to prevent XSS attacks
-        return input != null ? HtmlUtils.htmlEscape(input.trim()) : null;
-    }
+	    if (input == null) {
+	        return null;
+	    }
+
+	    // Perform HTML escaping, excluding the apostrophe
+	    StringBuilder sanitizedInput = new StringBuilder();
+	    for (char c : input.toCharArray()) {
+	        if (c == '\'') {
+	            sanitizedInput.append(c); // Preserve apostrophe as is
+	        } else {
+	            sanitizedInput.append(HtmlUtils.htmlEscape(Character.toString(c)));
+	        }
+	    }
+	    return sanitizedInput.toString();
+	}
+
 	
 }

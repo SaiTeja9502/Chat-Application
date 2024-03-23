@@ -20,6 +20,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 	void deleteByConversation(Conversation conversation);
 
 	List<Message> findByContactAndConversation(Contact contact, Conversation conversation);
+	
+	List<Message> findByContactAndConversationAndIsDeliveredFalse(Contact contact, Conversation conversation);
+	
+	 List<Message> findByConversationAndIsReadFalse(Conversation conversation);
 
 	@Query("SELECT m FROM Message m WHERE m.conversation = :conversation ORDER BY m.sentDatetime ASC")
     Page<Message> findMessagesByConversation(@Param("conversation") Conversation conversation, Pageable pageable);

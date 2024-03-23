@@ -1,5 +1,6 @@
 package com.example.demo.dto;
 
+
 public class SecurityQuestionDTO {
 	private String securityQuestion;
 	private String token;

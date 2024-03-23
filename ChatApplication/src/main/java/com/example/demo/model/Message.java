@@ -38,6 +38,12 @@ public class Message {
     
     @Column(name = "read_datetime")
     private LocalDateTime readDateTime;
+    
+    @Column(name = "is_delivered")
+    private boolean isDelivered;
+    
+    @Column(name = "delivered_datetime")
+    private LocalDateTime deliveredDateTime;
 
     @ManyToOne
     @JoinColumn(name = "conversation_id")
@@ -48,7 +54,7 @@ public class Message {
     }
     
 	public Message(Long messageId, Contact contact, String messageText, LocalDateTime sentDatetime,
-			boolean isRead, LocalDateTime readDateTime, Conversation conversation) {
+			boolean isRead, LocalDateTime readDateTime, boolean isDelivered, LocalDateTime deliveredDateTime, Conversation conversation) {
 		super();
 		this.messageId = messageId;
 		this.contact = contact;
@@ -56,6 +62,8 @@ public class Message {
 		this.sentDatetime = sentDatetime;
 		this.isRead = isRead;
 		this.readDateTime = readDateTime;
+		this.isDelivered = isDelivered;
+		this.deliveredDateTime = deliveredDateTime;
 		this.conversation = conversation;
 	}
 
@@ -111,6 +119,22 @@ public class Message {
 
 	public void setReadDateTime(LocalDateTime readDateTime) {
 		this.readDateTime = readDateTime;
+	}
+	
+	public boolean isDelivered() {
+		return isDelivered;
+	}
+
+	public void setDelivered(boolean isDelivered) {
+		this.isDelivered = isDelivered;
+	}
+
+	public LocalDateTime getDeliveredDateTime() {
+		return deliveredDateTime;
+	}
+
+	public void setDeliveredDateTime(LocalDateTime deliveredDateTime) {
+		this.deliveredDateTime = deliveredDateTime;
 	}
 
 	public Conversation getConversation() {

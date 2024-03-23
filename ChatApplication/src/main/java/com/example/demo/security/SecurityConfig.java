@@ -39,16 +39,18 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-         http.csrf((csrf)->csrf.disable())
-                .authorizeHttpRequests((authz)-> authz
-                .requestMatchers("/group/**").hasAnyRole("ADMIN","USER")
-                .requestMatchers("/login").permitAll()
-                .requestMatchers("/refreshToken").permitAll()
+        http.csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(authz -> authz
+                .requestMatchers("/group/new").authenticated()
+                .requestMatchers("/group/**").hasAnyRole("ADMIN", "USER")
+                .requestMatchers("/account/register", "/account/login", "/account/refreshToken", "/account/forgot/{phoneNumber}", "/ws/**").permitAll()
                 .anyRequest().authenticated())
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-                
-       return  http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class).build();
+            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -75,26 +77,17 @@ public class SecurityConfig {
     
     @Bean
     public AuthorizationManager<Message<?>> messageAuthorizationManager(MessageMatcherDelegatingAuthorizationManager.Builder messages) {
-        System.out.println("Hello world");
+    	System.out.println("inside authentication");
         messages
             .nullDestMatcher().authenticated()
             .simpTypeMatchers(SimpMessageType.CONNECT, SimpMessageType.UNSUBSCRIBE, SimpMessageType.DISCONNECT, SimpMessageType.HEARTBEAT).permitAll()
-            .simpSubscribeDestMatchers("/user/{userId}/private").access((message, matcher) -> {
+            .simpSubscribeDestMatchers("/private/{userId}/notifications").access((message, matcher) -> {
                 String userId = matcher.getVariables().get("userId");
-                System.out.println("Inside user private");
                 return hasrole("ROLE_USER_" + userId);
             })
-            .simpSubscribeDestMatchers("/chatroom/public/{groupId}").access((message, matcher) -> {
+            .simpSubscribeDestMatchers("/group/{groupId}").access((message, matcher) -> {
                 String groupId = matcher.getVariables().get("groupId");
                 return hasrole("ROLE_GROUP_" + groupId);
-            })
-            .simpMessageDestMatchers("/app/message/{groupId}").access((message, matcher) -> {
-                String groupId = matcher.getVariables().get("groupId");
-                return hasrole("ROLE_GROUP_" + groupId);
-            })
-            .simpMessageDestMatchers("/app/private-message/{userId}").access((message, matcher) -> {
-            	String userId = matcher.getVariables().get("userId");
-                return hasrole("ROLE_USER_" + userId);
             })
            .anyMessage().denyAll();
 
@@ -106,17 +99,14 @@ public class SecurityConfig {
     private AuthorizationDecision hasrole(String role) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-        	System.out.println("no authentication");
         	return new AuthorizationDecision(false);
         }
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        
-        System.out.println("authentication");
+
         boolean auth = false;
         for(GrantedAuthority authority: authorities) {
         	if(authority.getAuthority().equalsIgnoreCase(role)) {
         		auth = true;
-        		System.out.println("setter");
         		break;
         	}
         }

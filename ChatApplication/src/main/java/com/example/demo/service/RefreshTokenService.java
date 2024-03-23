@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,7 +25,7 @@ public class RefreshTokenService {
     public RefreshToken createRefreshToken(String phoneNumber){
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setContact(contactRepository.findByPhoneNumber(phoneNumber).get());
-        refreshToken.setExpiryDate(Instant.now().plusMillis(600000));
+        refreshToken.setExpiryDate(Instant.now().plus(Duration.ofDays(1)));
         refreshToken.setToken(UUID.randomUUID().toString());
         return refreshTokenRepository.save(refreshToken);
     }
@@ -38,10 +39,13 @@ public class RefreshTokenService {
     public RefreshToken verifyExpiration(RefreshToken token){
         if(token.getExpiryDate().compareTo(Instant.now())<0){
             refreshTokenRepository.delete(token);
-            System.out.println("Hello world");
             throw new InvalidRefreshTokenException(token.getToken() + " Refresh token is expired. Please make a new login..!");
         }
         return token;
+    }
+    
+    public void deleteRefreshToken(RefreshToken token) {
+    	refreshTokenRepository.delete(token);
     }
 
 }

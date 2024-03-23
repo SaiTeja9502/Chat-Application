@@ -1,6 +1,7 @@
 package com.example.demo.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
@@ -45,5 +46,18 @@ public class UserConversationId implements Serializable {
 		this.conversationId = conversationId;
 	}
     
+	@Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserConversationId that = (UserConversationId) o;
+        return Objects.equals(contactId, that.contactId) &&
+               Objects.equals(conversationId, that.conversationId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(contactId, conversationId);
+    }
     
 }

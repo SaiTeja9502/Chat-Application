@@ -12,6 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.ChatDTO;
 import com.example.demo.dto.ContactDTO;
 import com.example.demo.dto.Notification;
 import com.example.demo.dto.NotificationType;
@@ -51,10 +52,10 @@ public class ProfileService {
 	@Autowired
 	NotificationUtil notificationUtil;
 
+
 	public void updateUserName(String userName, String token) {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		contact.setUserName(userName);
 		contactRepository.save(contact);
@@ -63,7 +64,6 @@ public class ProfileService {
 	public void updatePhoto(String token, MultipartFile file) throws IOException {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		contact.setProfilePhoto(file.getBytes());
 		contactRepository.save(contact);
@@ -72,22 +72,25 @@ public class ProfileService {
 	public void updatePhoneNumber(String phoneNumber, String token) {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		contact.setPhoneNumber(phoneNumber);
 		contactRepository.save(contact);
 	}
 
-	public void addFriend(String token, String phoneNumber) {
+	public ChatDTO addFriend(String token, String phoneNumber) throws Exception {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		Optional<Contact> friendContactOptional = contactRepository.findByPhoneNumber(phoneNumber);
 		friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
 		Contact friend = friendContactOptional.get();
 		
-		Conversation conversation = conversationRepository.save(new Conversation());
+		if(contact.getContactId() == friend.getContactId()) {
+			throw new Exception();
+		}
+		Conversation conversation = new Conversation();
+		conversation.setCreatedAt(LocalDateTime.now());
+		conversation = conversationRepository.save(conversation);
 		
 		UserConversation myUserConversation = new UserConversation(new UserConversationId(contact.getContactId(), conversation.getConversationId()), contact, conversation, LocalDateTime.now(),
 				null, ConversationStatus.ACTIVE, UserRole.USER);
@@ -100,66 +103,79 @@ public class ProfileService {
 		Notification notification = new Notification();
         notification.setType(NotificationType.ADDED);
         notification.setSenderId(contact.getContactId());
-        List<ContactDTO> contactDTOs = new ArrayList<>();
-        ContactDTO contactDTO = new ContactDTO(friend.getContactId(), friend.getUserName(), Base64.getEncoder().encodeToString(friend.getProfilePhoto()), friend.getStatus());
-        contactDTOs.add(contactDTO);
-        notification.setContacts(contactDTOs);
+        notification.setConversationId(conversation.getConversationId());
+        ContactDTO contactDTO = new ContactDTO(friend.getContactId(), friend.getUserName(), null, friend.getStatus(), null);
+        notification.setContact(contactDTO);
 		notificationUtil.sendNotification(notification);	
+		
+		ChatDTO chatDTO = new ChatDTO();
+		chatDTO.setConversationId(conversation.getConversationId());
+		chatDTO.setStatus(ConversationStatus.ACTIVE);
+		List<ContactDTO> friendDTOs = new ArrayList<>();
+		ContactDTO friendDTO = new ContactDTO();
+		friendDTO.setcontactId(friend.getContactId());
+		friendDTO.setUsername(friend.getUserName());
+		String friendProfilePic = friend.getProfilePhoto() != null && friend.getProfilePhoto().length > 0 ? Base64.getEncoder().encodeToString(friend.getProfilePhoto()): null;
+		friendDTO.setBase64Image(friendProfilePic);
+		friendDTO.setStatus(friend.getStatus());
+		
+		friendDTOs.add(friendDTO);
+		chatDTO.setContacts(friendDTOs);
+		
+		return chatDTO;
 	}
 	
-	public void removeFriend(String token, String phoneNumber) throws ConversationNotFoundException {
+	public void removeFriend(String token, String phoneNumber) throws ConversationNotFoundException, InvalidRequestException {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		Optional<Contact> friendContactOptional = contactRepository.findByPhoneNumber(phoneNumber);
 		friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
 		Contact friend = friendContactOptional.get();
 		
-		Optional<Conversation> conversationOptional = userConversationRepository.findCommonConversationByContacts(contact.getContactId(), friend.getContactId());
-		conversationOptional.orElseThrow(()-> new ConversationNotFoundException());
-		Conversation conversation = conversationOptional.get();
+		List<UserConversation> userConversationList = userConversationRepository.findCommonConversationsWithNullName(contact, friend);
+		
+		if(userConversationList.isEmpty()) {
+			throw new InvalidRequestException("No Conversation exists!");
+		}
+		
+		Conversation conversation = userConversationList.get(0).getConversation();
 		UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
 		UserConversation otherUserConversation = userConversationRepository.findById(new UserConversationId(friend.getContactId(), conversation.getConversationId())).get();
 		
-		myUserConversation.setStatus(ConversationStatus.LEFT);
-		userConversationRepository.save(myUserConversation);
-		if(otherUserConversation.getStatus() == ConversationStatus.LEFT) {
-			messageRepository.deleteByConversation(conversation);
-			userConversationRepository.deleteById(myUserConversation.getId());
-			userConversationRepository.deleteById(otherUserConversation.getId());
-			conversationRepository.deleteById(conversation.getConversationId());
-		}else {
-			Notification notification = new Notification();
-	        notification.setType(NotificationType.REMOVED);
-	        notification.setSenderId(contact.getContactId());
-	        List<ContactDTO> contactDTOs = new ArrayList<>();
-	        ContactDTO contactDTO = new ContactDTO(friend.getContactId(), friend.getUserName(), Base64.getEncoder().encodeToString(friend.getProfilePhoto()), friend.getStatus());
-	        contactDTOs.add(contactDTO);
-	        notification.setContacts(contactDTOs);
-			notificationUtil.sendNotification(notification);
-		}
+		
+		messageRepository.deleteByConversation(conversation);
+		userConversationRepository.deleteById(myUserConversation.getId());
+		userConversationRepository.deleteById(otherUserConversation.getId());
+		conversationRepository.deleteById(conversation.getConversationId());
+
+		Notification notification = new Notification();
+        notification.setType(NotificationType.REMOVED);
+        notification.setSenderId(contact.getContactId());
+        notification.setConversationId(conversation.getConversationId());
+        ContactDTO contactDTO = new ContactDTO(friend.getContactId(), friend.getUserName(), null, friend.getStatus(), null);
+        notification.setContact(contactDTO);
+		notificationUtil.sendNotification(notification);
+
 	}
 	
 	public void blockFriend(String token, String phoneNumber) throws ConversationNotFoundException, InvalidRequestException {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		Optional<Contact> friendContactOptional = contactRepository.findByPhoneNumber(phoneNumber);
 		friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
 		Contact friend = friendContactOptional.get();
 		
-		Optional<Conversation> conversationOptional = userConversationRepository.findCommonConversationByContacts(contact.getContactId(), friend.getContactId());
-		conversationOptional.orElseThrow(()-> new ConversationNotFoundException());
-		Conversation conversation = conversationOptional.get();
-		UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
-		UserConversation otherUserConversation = userConversationRepository.findById(new UserConversationId(friend.getContactId(), conversation.getConversationId())).get();
+		List<UserConversation> userConversationList = userConversationRepository.findCommonConversationsWithNullName(contact, friend);
 		
-		
-		if(otherUserConversation.getStatus() == ConversationStatus.BLOCKED) {
-			throw new InvalidRequestException("Cannot be Blocked!");
+		if(userConversationList.isEmpty()) {
+			throw new InvalidRequestException("No Conversation exists!");
 		}
+		
+		Conversation conversation = userConversationList.get(0).getConversation();
+		UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
+
 		myUserConversation.setStatus(ConversationStatus.BLOCKED);
 		
 		userConversationRepository.save(myUserConversation);
@@ -170,15 +186,18 @@ public class ProfileService {
 	public void unBlockFriend(String token, String phoneNumber) throws ConversationNotFoundException, InvalidRequestException {
 		String contactId = jwtUtil.extractUsername(token);
 		Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
-		contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
 		Contact contact = contactOptional.get();
 		Optional<Contact> friendContactOptional = contactRepository.findByPhoneNumber(phoneNumber);
 		friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
 		Contact friend = friendContactOptional.get();
 		
-		Optional<Conversation> conversationOptional = userConversationRepository.findCommonConversationByContacts(contact.getContactId(), friend.getContactId());
-		conversationOptional.orElseThrow(()-> new ConversationNotFoundException());
-		Conversation conversation = conversationOptional.get();
+		List<UserConversation> userConversationList = userConversationRepository.findCommonConversationsWithNullName(contact, friend);
+		
+		if(userConversationList.isEmpty()) {
+			throw new InvalidRequestException("No Conversation exists!");
+		}
+		
+		Conversation conversation = userConversationList.get(0).getConversation();
 		UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
 		
 		if(myUserConversation.getStatus() == ConversationStatus.BLOCKED) {
@@ -198,9 +217,13 @@ public class ProfileService {
 		friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
 		Contact friend = friendContactOptional.get();
 		
-		Optional<Conversation> conversationOptional = userConversationRepository.findCommonConversationByContacts(contact.getContactId(), friend.getContactId());
-		conversationOptional.orElseThrow(()-> new ConversationNotFoundException());
-		Conversation conversation = conversationOptional.get();
+		List<UserConversation> userConversationList = userConversationRepository.findCommonConversationsWithNullName(contact, friend);
+		
+		if(userConversationList.isEmpty()) {
+			throw new InvalidRequestException("No Conversation exists!");
+		}
+		
+		Conversation conversation = userConversationList.get(0).getConversation();
 		UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
 		
 		if(myUserConversation.getStatus() == ConversationStatus.ACTIVE) {
@@ -209,6 +232,32 @@ public class ProfileService {
 		}else {
 			throw new InvalidRequestException("Cannot be Muted!");
 		}
+	}
+	
+	public void unMuteFriend(String token, String phoneNumber) throws ConversationNotFoundException, InvalidRequestException {
+			String contactId = jwtUtil.extractUsername(token);
+			Optional<Contact> contactOptional = contactRepository.findById(Long.parseLong(contactId));
+			contactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + contactId));
+			Contact contact = contactOptional.get();
+			Optional<Contact> friendContactOptional = contactRepository.findByPhoneNumber(phoneNumber);
+			friendContactOptional.orElseThrow(()-> new UsernameNotFoundException("Not Found: " + phoneNumber));
+			Contact friend = friendContactOptional.get();
+			
+			List<UserConversation> userConversationList = userConversationRepository.findCommonConversationsWithNullName(contact, friend);
+			
+			if(userConversationList.isEmpty()) {
+				throw new InvalidRequestException("No Conversation exists!");
+			}
+			
+			Conversation conversation = userConversationList.get(0).getConversation();
+			UserConversation myUserConversation = userConversationRepository.findById(new UserConversationId(contact.getContactId(), conversation.getConversationId())).get();
+			
+			if(myUserConversation.getStatus() == ConversationStatus.MUTE) {
+				myUserConversation.setStatus(ConversationStatus.ACTIVE);
+				userConversationRepository.save(myUserConversation);
+			}else {
+				throw new InvalidRequestException("Cannot be unMuted!");
+			}
 	}
 	
 }

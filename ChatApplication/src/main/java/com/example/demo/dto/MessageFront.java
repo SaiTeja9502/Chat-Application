@@ -1,40 +1,34 @@
 package com.example.demo.dto;
 
+import org.springframework.web.util.HtmlUtils;
+
+import jakarta.validation.constraints.NotBlank;
+
 public class MessageFront {
 	
-	private Long senderId;
-	private Long messageId;
+	private String messageId;
+	@NotBlank(message = "message is required")
 	private String message;
-	private Long conversationId;
-	private MessageType type;
+	@NotBlank(message = "Conversation ID is required")
+	private String conversationId;
 	
 	public MessageFront() {
 		
 	}
 
-	public MessageFront(Long senderId, Long messageId, String message, Long conversationId, String type) {
+	public MessageFront(String messageId, String message, String conversationId) {
 		super();
-		this.senderId = senderId;
-		this.messageId = messageId;
-		this.message = message;
-		this.conversationId = conversationId;
-		this.type = MessageType.valueOf(type);
+		this.messageId = sanitize(messageId);
+		this.message = sanitize(message);
+		this.conversationId = sanitize(conversationId);
 	}
 
-	public Long getSenderId() {
-		return senderId;
-	}
-
-	public void setSenderId(Long senderId) {
-		this.senderId = senderId;
-	}
-
-	public Long getMessageId() {
+	public String getMessageId() {
 		return messageId;
 	}
 
-	public void setMessageId(Long messageId) {
-		this.messageId = messageId;
+	public void setMessageId(String messageId) {
+		this.messageId = sanitize(messageId);
 	}
 
 	public String getMessage() {
@@ -42,25 +36,20 @@ public class MessageFront {
 	}
 
 	public void setMessage(String message) {
-		this.message = message;
+		this.message = sanitize(message);
 	}
 
-	public Long getConversationId() {
+	public String getConversationId() {
 		return conversationId;
 	}
 
-	public void setConversationId(Long conversationId) {
-		this.conversationId = conversationId;
-	}
-
-	public MessageType getType() {
-		return type;
-	}
-
-	public void setType(String type) {
-		this.type = MessageType.valueOf(type);
+	public void setConversationId(String conversationId) {
+		this.conversationId = sanitize(conversationId);
 	}
 	
-	
+	private String sanitize(String input) {
+        // Perform HTML escaping to prevent XSS attacks
+        return input != null ? HtmlUtils.htmlEscape(input.trim()) : null;
+    }
 
 }

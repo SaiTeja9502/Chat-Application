@@ -32,19 +32,28 @@ public class UserMessageStatus {
     
     @Column(name = "read_datetime")
     private LocalDateTime readDateTime;
+    
+    @Column(name = "is_delivered")
+    private boolean isDelivered;
+    
+    @Column(name = "delivered_datetime")
+    private LocalDateTime deliveredDateTime;
 
     // Constructors, getters, and setters
     public UserMessageStatus() {
     	
     }
 
-	public UserMessageStatus(UserMessageStatusId id, Contact contact, Message message, boolean isRead, LocalDateTime readDateTime) {
+	public UserMessageStatus(UserMessageStatusId id, Contact contact, Message message, boolean isRead, 
+			LocalDateTime readDateTime, boolean isDelivered, LocalDateTime deliveredDateTime) {
 		super();
 		this.id = id;
 		this.contact = contact;
 		this.message = message;
 		this.isRead = isRead;
 		this.readDateTime = readDateTime;
+		this.isDelivered = isDelivered;
+		this.deliveredDateTime = deliveredDateTime;
 	}
 
 	public UserMessageStatusId getId() {
@@ -85,6 +94,22 @@ public class UserMessageStatus {
 
 	public void setReadDateTime(LocalDateTime readDateTime) {
 		this.readDateTime = readDateTime;
+	}
+
+	public boolean isDelivered() {
+		return isDelivered;
+	}
+
+	public void setDelivered(boolean isDelivered) {
+		this.isDelivered = isDelivered;
+	}
+
+	public LocalDateTime getDeliveredDateTime() {
+		return deliveredDateTime;
+	}
+
+	public void setDeliveredDateTime(LocalDateTime deliveredDateTime) {
+		this.deliveredDateTime = deliveredDateTime;
 	}
     
 	

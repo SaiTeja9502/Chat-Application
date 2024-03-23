@@ -23,9 +23,9 @@ public class MyUserDetails implements UserDetails{
 	}
 	
 	public MyUserDetails(Contact contact) {
-		this.username = contact.getPhoneNumber();
+		this.username = contact.getContactId().toString();
 		this.password = contact.getPassword();
-		this.active = true;
+		this.active = !contact.getSecurity().isLocked();
 		this.authorities = new ArrayList<>();
 	}
 	

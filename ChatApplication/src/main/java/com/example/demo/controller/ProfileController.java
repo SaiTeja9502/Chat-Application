@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,24 +16,29 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.demo.dto.ChatDTO;
+import com.example.demo.dto.ContactDTO;
 import com.example.demo.dto.FriendDTO;
 import com.example.demo.service.ProfileService;
+import com.example.demo.utils.SanitizationUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/profile")
+@CrossOrigin
 public class ProfileController {
 	
 	@Autowired
 	ProfileService profileService;
 	
-	@PutMapping("/username/{userName:[^\\s]{5,15}}")
-	public ResponseEntity<?> updateUserName(@PathVariable String userName, HttpServletRequest request) {
+	@PutMapping("/username/{username:[^\\s]{5,15}}")
+	public ResponseEntity<?> updateUserName(@PathVariable String username, HttpServletRequest request) {
 		try {
 			String authorizationHeader = request.getHeader("Authorization");
 	        String token = authorizationHeader.substring(7);
+	        String userName = SanitizationUtils.sanitizeHtml(username);
 			profileService.updateUserName(userName, token);
 			return new ResponseEntity<String>("Successful", HttpStatus.OK);
 		}
@@ -58,11 +64,12 @@ public class ProfileController {
 		}
 	}
 	
-	@PutMapping("/phonenumber/{phoneNumber:\\d{10}}")
-	public ResponseEntity<?> updatePhoneNumber(@PathVariable String phoneNumber, HttpServletRequest request) {
+	@PutMapping("/phonenumber/{phonenumber:\\d{10}}")
+	public ResponseEntity<?> updatePhoneNumber(@PathVariable String phonenumber, HttpServletRequest request) {
 		try {
 			String authorizationHeader = request.getHeader("Authorization");
 	        String token = authorizationHeader.substring(7);
+	        String phoneNumber = SanitizationUtils.sanitizeHtml(phonenumber);
 			profileService.updatePhoneNumber(phoneNumber, token);
 			return new ResponseEntity<String>("Successful", HttpStatus.OK);
 		}
@@ -76,8 +83,7 @@ public class ProfileController {
 		try {
 			String authorizationHeader = request.getHeader("Authorization");
 	        String token = authorizationHeader.substring(7);
-			profileService.addFriend(token, friendDTO.getPhoneNumber());
-			return new ResponseEntity<String>("Successful", HttpStatus.OK);
+			return new ResponseEntity<ChatDTO>(profileService.addFriend(token, friendDTO.getPhoneNumber()), HttpStatus.OK);
 		}
 		catch(Exception e) {
 			return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
@@ -129,6 +135,19 @@ public class ProfileController {
 			String authorizationHeader = request.getHeader("Authorization");
 	        String token = authorizationHeader.substring(7);
 			profileService.muteFriend(token, friendDTO.getPhoneNumber());
+			return new ResponseEntity<String>("Successful", HttpStatus.OK);
+		}
+		catch(Exception e) {
+			return new ResponseEntity<String>("Failed", HttpStatus.BAD_REQUEST);
+		}
+	}
+	
+	@PutMapping("/unmute")
+	public ResponseEntity<?> unMuteFriend(@Valid @RequestBody FriendDTO friendDTO, HttpServletRequest request) {
+		try {
+			String authorizationHeader = request.getHeader("Authorization");
+	        String token = authorizationHeader.substring(7);
+			profileService.unMuteFriend(token, friendDTO.getPhoneNumber());
 			return new ResponseEntity<String>("Successful", HttpStatus.OK);
 		}
 		catch(Exception e) {

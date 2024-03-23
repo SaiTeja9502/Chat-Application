@@ -10,6 +10,7 @@ import com.example.demo.exceptions.AccountLockedException;
 import com.example.demo.exceptions.AdminRemovalException;
 import com.example.demo.exceptions.ConversationNotFoundException;
 import com.example.demo.exceptions.InvalidSecurityAnswerException;
+import com.example.demo.exceptions.NoPermissionException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -46,6 +47,12 @@ public class GlobalExceptionHandler {
     
     @ExceptionHandler(ConversationNotFoundException.class)
     public ResponseEntity<String> handleConversationNotFoundExceptions(ConversationNotFoundException ex) {
+    	System.out.println("Handled");
+        return ResponseEntity.badRequest().body("Validation error: " + ex.getMessage());
+    }
+    
+    @ExceptionHandler(NoPermissionException.class)
+    public ResponseEntity<String> handleNoPermissionExceptions(NoPermissionException ex) {
     	System.out.println("Handled");
         return ResponseEntity.badRequest().body("Validation error: " + ex.getMessage());
     }

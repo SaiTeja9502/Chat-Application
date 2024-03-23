@@ -1,6 +1,5 @@
 package com.example.demo.dto;
 
-import java.util.List;
 
 public class Notification {
 	private NotificationType type;
@@ -8,18 +7,21 @@ public class Notification {
 	private MessageDTO messageDTO;
 	private Long senderId;
 	private String groupName;
-	private List<ContactDTO> contacts;
+	private ContactDTO contact;
 	
 	public Notification() {
 		
 	}
 
 	public Notification(NotificationType type, Long conversationId, MessageDTO messageDTO, Long senderId,
-			String groupName, List<ContactDTO> contacts) {
+			String groupName, ContactDTO contact) {
 		super();
 		this.type = type;
 		this.conversationId = conversationId;
 		this.messageDTO = messageDTO;
+		this.senderId = senderId;
+		this.groupName = groupName;
+		this.contact = contact;
 	}
 
 	public NotificationType getType() {
@@ -62,12 +64,12 @@ public class Notification {
 		this.groupName = groupName;
 	}
 
-	public List<ContactDTO> getContacts() {
-		return contacts;
+	public ContactDTO getContact() {
+		return contact;
 	}
 
-	public void setContacts(List<ContactDTO> contacts) {
-		this.contacts = contacts;
+	public void setContact(ContactDTO contacts) {
+		this.contact = contacts;
 	}
 	
 	
